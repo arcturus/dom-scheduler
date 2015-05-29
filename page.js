@@ -7,8 +7,14 @@
     var listContainer = document.querySelector('section');
 
     var maestro = new DomScheduler();
-    var source = new BaconSource();
-    var list = new ScheduledList(listContainer, source, maestro);
+    //var source = new BaconSource();
+    var source = new ContactsSource();
+    var list = null;
+    source.init().then(function() {
+      new ScheduledList(listContainer, source, maestro);
+      updateHeader();
+    });
+    //var list = new ScheduledList(listContainer, source, maestro);
 
     function updateHeader() {
       return maestro.mutation(function() {
@@ -17,7 +23,6 @@
         h1.scrollTop; // flush
       });
     }
-    updateHeader();
 
     function clearNewIndicator() {
       var h1After = document.querySelector('#h1-after');
@@ -42,24 +47,24 @@
     }
     listContainer.addEventListener('hidden-new-content', updateNewIndicator);
 
-    function newContentHandler() {
-      var newContent = {
-        title: 'NEW Bacon ' + Date.now().toString().slice(7, -1),
-        body: 'Turkey BLT please.'
-      };
+    // function newContentHandler() {
+    //   var newContent = {
+    //     title: 'NEW Bacon ' + Date.now().toString().slice(7, -1),
+    //     body: 'Turkey BLT please.'
+    //   };
+    //
+    //   source.insertAtIndex(0, newContent);
+    //   list.insertedAtIndex(0);
+    //
+    //   updateHeader();
+    // }
 
-      source.insertAtIndex(0, newContent);
-      list.insertedAtIndex(0);
-
-      updateHeader();
-    }
-
-    setInterval(newContentHandler, 15000);
-    window.addEventListener('new-content', newContentHandler);
-
-    window.pushNewContent = function() {
-      window.dispatchEvent(new CustomEvent('new-content'));
-    };
+    // setInterval(newContentHandler, 15000);
+    // window.addEventListener('new-content', newContentHandler);
+    //
+    // window.pushNewContent = function() {
+    //   window.dispatchEvent(new CustomEvent('new-content'));
+    // };
 
     var button = document.querySelector('button');
     button.addEventListener('touchend', function() {
