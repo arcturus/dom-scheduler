@@ -12,33 +12,49 @@
       sortOrder: 'ascending'
     };
     var index = 0;
+    var resolve, reject;
+    var deferred = new Promise(function(res, rej) {
+      resolve = res;
+      reject = rej;
+    });
     var cursor = navigator.mozContacts.getAll(options);
+    var FIRST_CHUNK = 50;
+    var firstChunkReady = false;
     cursor.onsuccess = function onsuccess(evt) {
       var contact = evt.target.result;
       if (contact) {
         source.insertAtIndex(index++, contact);
+        if (!firstChunkReady && index >= FIRST_CHUNK) {
+          firstChunkReady = true;
+          resolve();
+        }
         cursor.continue();
       } else {
         console.log('Finished loading ', index);
+        reject();
       }
     };
     cursor.onerror = function onerror(err) {
       console.error('Error: ', err);
     };
+    return deferred;
   }
 
   ContactsSource.prototype.init = function cs_init() {
-    fetchAllContacts(this);
-    return new Promise((resolve, reject) => {
+    var promises = [];
+
+    promises.push(new Promise((resolve, reject) => {
       var request = window.navigator.mozContacts.getCount();
       var self = this;
       request.onsuccess = function () {
         self.listSize = this.result;
-        resolve(self.listSize);
+        resolve();
       };
 
       request.onerror = reject;
-    });
+    }));
+    promises.push(fetchAllContacts(this));
+    return Promise.all(promises);
   };
 
   ContactsSource.prototype.populateItem = function cs_populdateItem(item, i) {
@@ -46,10 +62,15 @@
     var body = title.nextSibling;
     var contact = this.content[i];
 
-    title.firstChild.data = contact.givenName ?
-     contact.givenName[0] : 'No name';
-    body.firstChild.data = contact.tel && contact.tel.length > 0 ?
-     contact.tel[0].value : 'No phone';
+    if (contact) {
+      title.firstChild.data = contact.givenName ?
+       contact.givenName[0] : 'No name';
+      body.firstChild.data = contact.tel && contact.tel.length > 0 ?
+       contact.tel[0].value : 'No phone';
+    } else {
+      title.firstChild.data = 'Loading';
+      body.firstChild.data = '';
+    }
   },
 
   ContactsSource.prototype.indexAtPosition = function cs_indexAtPosition(pos) {
