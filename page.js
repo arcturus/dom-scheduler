@@ -11,7 +11,7 @@
     var source = new ContactsSource();
     var list = null;
     source.init().then(function() {
-      new ScheduledList(listContainer, source, maestro);
+      list = new ScheduledList(listContainer, source, maestro);
       updateHeader();
     });
     //var list = new ScheduledList(listContainer, source, maestro);
