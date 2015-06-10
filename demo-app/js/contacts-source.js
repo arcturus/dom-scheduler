@@ -18,30 +18,37 @@
       reject = rej;
     });
     var cursor = navigator.mozContacts.getAll(options);
-    var FIRST_CHUNK = 50;
+    var CHUNK = 10;
     var firstChunkReady = false;
     cursor.onsuccess = function onsuccess(evt) {
       var contact = evt.target.result;
       if (contact) {
         source.insertAtIndex(index++, contact);
-        if (firstChunkReady && index % FIRST_CHUNK === 0) {
-          var event = new Event('new-content');
-          document.dispatchEvent(event);
+        if (firstChunkReady && index % CHUNK === 0) {
+          document.dispatchEvent(new Event('new-content'));
         }
 
-        if (!firstChunkReady && index >= FIRST_CHUNK) {
+        if (!firstChunkReady && index >= CHUNK) {
+          performance.measure('first_chunk');
           firstChunkReady = true;
+          // After first chunk increase the chunk to 50
+          CHUNK = 50;
           resolve();
         }
 
         cursor.continue();
       } else {
         console.log('Finished loading ', index);
-        reject();
+        performance.measure('all_contacts');
+        if (index % CHUNK > 0) {
+          document.dispatchEvent(new Event('new-content'));
+        }
+        resolve();
       }
     };
     cursor.onerror = function onerror(err) {
       console.error('Error: ', err);
+      reject();
     };
     return deferred;
   }
