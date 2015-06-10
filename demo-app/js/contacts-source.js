@@ -24,10 +24,16 @@
       var contact = evt.target.result;
       if (contact) {
         source.insertAtIndex(index++, contact);
+        if (firstChunkReady && index % FIRST_CHUNK === 0) {
+          var event = new Event('new-content');
+          document.dispatchEvent(event);
+        }
+
         if (!firstChunkReady && index >= FIRST_CHUNK) {
           firstChunkReady = true;
           resolve();
         }
+
         cursor.continue();
       } else {
         console.log('Finished loading ', index);

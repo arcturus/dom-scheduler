@@ -12,6 +12,9 @@
     var list = null;
     source.init().then(function() {
       list = new ScheduledList(listContainer, source, maestro);
+      document.addEventListener('new-content', function() {
+        list.reloadData();
+      });
       updateHeader();
     });
     //var list = new ScheduledList(listContainer, source, maestro);
