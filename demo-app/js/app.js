@@ -80,14 +80,35 @@
 
     var button = document.querySelector('button');
     button.addEventListener('touchend', function() {
-      Promise.all([toggleTransitioning(), list.toggleEditMode()])
+      toggleTransitioning()
+        .then(performInstall)
         .then(updateText)
         .then(toggleTransitioning);
     });
 
-    function updateText(text) {
+    function performInstall() {
+      return new Promise(function(resolve, reject) {
+        var req = navigator.mozApps.getSelf();
+        req.onerror = reject;
+        req.onsuccess = function() {
+          if (!req.result) {
+            var installURL = document.location.toString() + 'manifest.webapp';
+            var installReq = window.navigator.mozApps.install(installURL);
+            installReq.onsuccess = resolve;
+            installReq.onerror = reject;
+          } else{
+            alert('App already installed');
+          }
+        };
+      });
+    }
+
+    function updateText() {
       return maestro.mutation(function() {
-        button.textContent = list.editing ? 'Exit' : 'Edit';
+        var req = navigator.mozApps.getSelf();
+        req.onsuccess = function() {
+          button.textContent = req.result ? 'Installed' : 'Install';
+        }
       });
     }
 
@@ -110,5 +131,21 @@
     }
 
     loadDependecies();
+  });
+
+  window.addEventListener('DOMContentLoaded', function() {
+    if (!navigator.serviceWorker) {
+      return;
+    }
+    var req = navigator.mozApps.getSelf();
+    req.onsuccess = function() {
+      if (req.result) {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (!reg) {
+            navigator.serviceWorker.register('sw.js');
+          }
+        });
+      }
+    }
   });
 })();

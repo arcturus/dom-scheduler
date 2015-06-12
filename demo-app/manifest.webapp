@@ -1,5 +1,5 @@
 {
-  "name": "dom-scheduler-demo",
+  "name": "sw-dom-scheduler-demo",
   "description": "A Hello World app",
   "launch_path": "/index.html",
   "icons": {
