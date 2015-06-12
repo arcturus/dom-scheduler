@@ -130,10 +130,11 @@
       });
     }
 
-    loadDependecies();
+    //loadDependecies();
+    checkAndInstallSW();
   });
 
-  window.addEventListener('DOMContentLoaded', function() {
+  function checkAndInstallSW() {
     if (!navigator.serviceWorker) {
       return;
     }
@@ -146,6 +147,6 @@
           }
         });
       }
-    }
-  });
+    };
+  }
 })();
