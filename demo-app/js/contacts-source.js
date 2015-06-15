@@ -6,6 +6,39 @@
     this.content = [];
   }
 
+  function saveContent(url, content, contentType) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Content-Type', contentType || 'plain/html');
+    return new Promise(function(resolve, reject) {
+      xhr.onload = function() {
+        if (xhr.status < 400) {
+          resolve();
+        } else {
+          reject();
+        }
+      };
+      xhr.send(content);
+    });
+  }
+
+  function cache(sample, total) {
+    // Get the json part
+    var toCache = {
+      data: sample.map(toJSON),
+      total: total
+    };
+    return saveContent('/model.json', JSON.stringify(toCache), 'application/json;charset=UTF-8');
+  }
+
+  function toJSON(mozContact) {
+    return {
+      id: mozContact.id,
+      givenName: mozContact.givenName,
+      tel: mozContact.tel
+    };
+  }
+
   function fetchAllContacts(source) {
     var options = {
       sortBy: 'givenName',
@@ -20,6 +53,13 @@
     var cursor = navigator.mozContacts.getAll(options);
     var CHUNK = 10;
     var firstChunkReady = false;
+    // We already have some cached content.
+    var fromCache = Cache && Cache.data.length > 0;
+    if (fromCache) {
+      // Change all variables, as fe got our first chunk
+      CHUNK = 50;
+      firstChunkReady = true;
+    }
     cursor.onsuccess = function onsuccess(evt) {
       var contact = evt.target.result;
       if (contact) {
@@ -28,7 +68,7 @@
           document.dispatchEvent(new Event('new-content'));
         }
 
-        if (!firstChunkReady && index >= CHUNK) {
+        if (!firstChunkReady && index >= CHUNK && !fromCache) {
           performance.measure('first_chunk');
           firstChunkReady = true;
           // After first chunk increase the chunk to 50
@@ -43,7 +83,7 @@
         if (index % CHUNK > 0) {
           document.dispatchEvent(new Event('new-content'));
         }
-        resolve();
+        onAllContactsLoaded(source);
       }
     };
     cursor.onerror = function onerror(err) {
@@ -53,22 +93,50 @@
     return deferred;
   }
 
+  function onAllContactsLoaded(source) {
+    cache(source.content.slice(0, 10), source.content.length);
+  }
+
   ContactsSource.prototype.init = function cs_init() {
+    var self = this;
+    if (Cache && Cache.data && Cache.total) {
+      // Put first chunk into the source
+      Cache.data.forEach(function(item, index) {
+        self.insertAtIndex(index, item);
+      });
+
+      // Total contacts (can be updated)
+      self.listSize = Cache.total;
+
+      // Launch get the whole list again
+      setTimeout(function() {
+        getListSize(self);
+        fetchAllContacts(self);
+      });
+
+      // Mark first chunk ready since we can draw on the list
+      performance.measure('first_chunk');
+      return Promise.resolve();
+    }
+    
     var promises = [];
 
-    promises.push(new Promise((resolve, reject) => {
+    promises.push(getListSize(this));
+    promises.push(fetchAllContacts(this));
+    return Promise.all(promises);
+  };
+
+  function getListSize(source) {
+    return new Promise((resolve, reject) => {
       var request = window.navigator.mozContacts.getCount();
-      var self = this;
       request.onsuccess = function () {
-        self.listSize = this.result;
+        source.listSize = this.result;
         resolve();
       };
 
       request.onerror = reject;
-    }));
-    promises.push(fetchAllContacts(this));
-    return Promise.all(promises);
-  };
+    })
+  }
 
   ContactsSource.prototype.populateItem = function cs_populdateItem(item, i) {
     var title = item.firstChild;

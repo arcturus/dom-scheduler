@@ -12,6 +12,7 @@
     var source = new ContactsSource();
     var list = null;
     source.init().then(function() {
+      setTimeout(saveFirstChunk);
       list = new ScheduledList(listContainer, source, maestro);
       list.list.addEventListener('item-selected', openGaiaDialog);
       document.addEventListener('new-content', function() {
@@ -27,6 +28,10 @@
         h1.textContent = 'Main List (' + source.fullLength() + ')';
         h1.scrollTop; // flush
       });
+    }
+
+    function saveFirstChunk() {
+      
     }
 
     function clearNewIndicator() {
