@@ -78,6 +78,7 @@ var kCacheFiles = [
 'index.html',
 'js/app.js',
 'js/bacon-source.js',
+'js/cache.js',
 'js/contacts-source.js',
 'manifest.webapp'
 ];
